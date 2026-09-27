@@ -3,35 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>부산 공영주차장</title>
+
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="container">
 
     <h1>부산 공영주차장</h1>
+
     <p class="subtitle">
       실시간 주차가능 정보와 기본정보를 함께 조회합니다.
     </p>
 
+
+    <!-- 검색 영역 -->
     <div class="search-box">
+
       <input
         type="text"
         id="searchInput"
         placeholder="주차장 이름을 입력하세요. 예: 화명"
       >
+
       <button id="searchButton">
         검색
       </button>
+
     </div>
 
+
+    <!-- 검색 결과 안내 -->
     <div id="summary"></div>
 
+
+    <!-- 정렬 버튼 -->
+    <div class="sort-box">
+
+      <button
+        id="defaultSortButton"
+        class="sort-button active"
+      >
+        기본순
+      </button>
+
+      <button
+        id="availableSortButton"
+        class="sort-button"
+      >
+        빈자리 많은 순
+      </button>
+
+    </div>
+
+
+    <!-- 검색 결과 -->
     <div id="result"></div>
 
   </div>
 
+
   <script src="app.js"></script>
+
 </body>
 </html>
