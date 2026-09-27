@@ -59,6 +59,19 @@ async function loadParkingData() {
 
 
 // -----------------------------------------
+// 검색용 문자열 정리
+// 공백, 괄호, 쉼표 등을 무시
+// -----------------------------------------
+function normalizeSearch(text = "") {
+
+  return String(text)
+    .replace(/\s+/g, "")
+    .replace(/[(),]/g, "")
+    .toLowerCase();
+}
+
+
+// -----------------------------------------
 // "-" 또는 null 처리
 // -----------------------------------------
 function displayValue(value) {
@@ -222,12 +235,10 @@ function createParkingCard(parking) {
 // -----------------------------------------
 function searchParking() {
 
-  const keyword =
-    searchInput.value
-      .trim()
-      .toLowerCase();
+  const originalKeyword =
+    searchInput.value.trim();
 
-  if (!keyword) {
+  if (!originalKeyword) {
 
     resultDiv.innerHTML = `
       <div class="no-result">
@@ -239,13 +250,48 @@ function searchParking() {
   }
 
 
-  const filtered =
+  const keyword =
+    normalizeSearch(originalKeyword);
+
+
+  // -----------------------------------------
+  // 1순위
+  // 검색어로 시작하는 주차장
+  // -----------------------------------------
+  const startsWithResults =
     parkingData.filter((parking) => {
 
-      return parking.parknm
-        .toLowerCase()
-        .includes(keyword);
+      const name =
+        normalizeSearch(parking.parknm);
+
+      return name.startsWith(keyword);
     });
+
+
+  // -----------------------------------------
+  // 2순위
+  // 이름 중간에 검색어가 포함된 주차장
+  // -----------------------------------------
+  const includesResults =
+    parkingData.filter((parking) => {
+
+      const name =
+        normalizeSearch(parking.parknm);
+
+      return (
+        !name.startsWith(keyword) &&
+        name.includes(keyword)
+      );
+    });
+
+
+  // -----------------------------------------
+  // 앞부분 일치 결과를 먼저 배치
+  // -----------------------------------------
+  const filtered = [
+    ...startsWithResults,
+    ...includesResults
+  ];
 
 
   summaryDiv.textContent =
