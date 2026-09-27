@@ -30,6 +30,7 @@ export async function onRequest(context) {
       fetch(realtimeUrl.toString())
     ]);
 
+
     if (!listResponse.ok) {
       throw new Error(
         `주차장 목록 API 오류: ${listResponse.status}`
@@ -47,13 +48,44 @@ export async function onRequest(context) {
     const realtimeData = await realtimeResponse.json();
 
 
-    // 아직 합치지 않고 각각 확인
+    // API ① 주차장 목록 배열
+    const parkingList =
+      listData?.response?.body?.items?.item ?? [];
+
+    // API ② 실시간 주차현황 배열
+    const realtimeList =
+      realtimeData?.response?.body?.items?.item ?? [];
+
+
+    // 실시간 데이터를 parkgcd 기준으로 빠르게 찾기 위한 Map 생성
+    const realtimeMap = new Map(
+      realtimeList.map((item) => [
+        item.parkgcd,
+        item
+      ])
+    );
+
+
+    // API ① 목록 + API ② 실시간 정보 결합
+    const mergedParkingList = parkingList.map((parking) => {
+      const realtime = realtimeMap.get(parking.parkgcd);
+
+      return {
+        parkgcd: parking.parkgcd,
+        parknm: parking.parknm,
+
+        maxcnt: realtime?.maxcnt ?? null,
+        parkingcnt: realtime?.parkingcnt ?? null,
+        curravacnt: realtime?.curravacnt ?? null,
+        lastupdatetime: realtime?.lastupdatetime ?? null
+      };
+    });
+
+
     return Response.json({
       success: true,
-
-      parkingList: listData,
-
-      realtimeParking: realtimeData
+      totalCount: mergedParkingList.length,
+      items: mergedParkingList
     });
 
   } catch (error) {
