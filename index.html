@@ -30,7 +30,7 @@
       >
 
       <button id="searchButton">
-        검색 
+        검색
       </button>
 
     </div>
@@ -40,21 +40,33 @@
     <div id="summary"></div>
 
 
-    <!-- 정렬 버튼 -->
-    <div class="sort-box">
+    <!-- 정렬 / 새로고침 영역 -->
+    <div class="control-box">
+
+      <div class="sort-box">
+
+        <button
+          id="defaultSortButton"
+          class="sort-button active"
+        >
+          기본순
+        </button>
+
+        <button
+          id="availableSortButton"
+          class="sort-button"
+        >
+          빈자리 많은 순
+        </button>
+
+      </div>
+
 
       <button
-        id="defaultSortButton"
-        class="sort-button active"
+        id="refreshButton"
+        class="refresh-button"
       >
-        기본순
-      </button>
-
-      <button
-        id="availableSortButton"
-        class="sort-button"
-      >
-        빈자리 많은 순
+        ↻ 최신정보 새로고침
       </button>
 
     </div>

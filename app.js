@@ -1,5 +1,5 @@
 // =====================================================
-// HTML 요소 가져오기
+// HTML 요소
 // =====================================================
 
 const searchInput =
@@ -38,26 +38,36 @@ const availableSortButton =
   );
 
 
+const refreshButton =
+  document.getElementById(
+    "refreshButton"
+  );
+
+
 // =====================================================
-// 데이터 저장 공간
+// 데이터
 // =====================================================
 
 // 전체 주차장 데이터
 let parkingData = [];
 
 
-// 현재 검색된 결과
+// 현재 검색 결과
 let currentResults = [];
 
 
 // 현재 정렬 방식
-// default = 기본순
-// available = 빈자리 많은 순
+// default
+// available
 let currentSort = "default";
 
 
+// 마지막 검색어
+let currentKeyword = "";
+
+
 // =====================================================
-// 통합 API 데이터 불러오기
+// API 데이터 불러오기
 // =====================================================
 
 async function loadParkingData() {
@@ -122,19 +132,15 @@ async function loadParkingData() {
 // 검색용 문자열 정리
 // =====================================================
 //
-// 공백
-// 괄호
-// 쉼표
-//
-// 등을 제거해서
-// 사용자의 입력 차이를 줄인다.
+// 공백, 괄호, 쉼표를 제거한다.
 //
 // 예:
 //
 // 부산대역(남측)
+// 부산대역 남
 // 부산대역남
 //
-// 둘 다 검색 가능
+// 비교 가능
 //
 // =====================================================
 
@@ -160,7 +166,7 @@ function normalizeSearch(
 
 
 // =====================================================
-// 값이 없을 때 표시
+// 값 표시
 // =====================================================
 
 function displayValue(
@@ -185,25 +191,17 @@ function displayValue(
 
 
 // =====================================================
-// 주차장 카드 만들기
+// 주차장 카드 생성
 // =====================================================
 
 function createParkingCard(
   parking
 ) {
 
-  // -----------------------------
-  // 현재 빈자리
-  // -----------------------------
-
   const available =
     parking.curravacnt ??
     "정보 없음";
 
-
-  // -----------------------------
-  // 총 주차면수
-  // -----------------------------
 
   const total =
     parking.maxcnt ??
@@ -215,6 +213,7 @@ function createParkingCard(
   // -----------------------------
 
   const address =
+
     parking.doroAddr &&
     parking.doroAddr !== "-"
 
@@ -226,7 +225,7 @@ function createParkingCard(
 
 
   // -----------------------------
-  // 기본요금
+  // 기본 요금
   // -----------------------------
 
   let feeText =
@@ -234,20 +233,19 @@ function createParkingCard(
 
 
   if (
-
     parking.pkBascTime &&
-
     parking.pkBascTime !== "-" &&
-
     parking.tenMin &&
-
     parking.tenMin !== "-"
-
   ) {
 
     feeText =
+
       `${parking.pkBascTime}분 ` +
-      `${Number(parking.tenMin).toLocaleString()}원`;
+
+      `${Number(
+        parking.tenMin
+      ).toLocaleString()}원`;
 
   }
 
@@ -261,19 +259,17 @@ function createParkingCard(
 
 
   if (
-
     parking.svcSrtTe &&
-
     parking.svcSrtTe !== "-" &&
-
     parking.svcEndTe &&
-
     parking.svcEndTe !== "-"
-
   ) {
 
     operatingTime =
-      `${parking.svcSrtTe} ~ ${parking.svcEndTe}`;
+
+      `${parking.svcSrtTe} ~ ` +
+
+      `${parking.svcEndTe}`;
 
   }
 
@@ -434,20 +430,100 @@ function createParkingCard(
 
 
 // =====================================================
-// 현재 검색 결과 화면에 표시
+// 검색 결과 만들기
+// =====================================================
+
+function makeSearchResults(
+  keyword
+) {
+
+  const normalizedKeyword =
+    normalizeSearch(
+      keyword
+    );
+
+
+  // -----------------------------
+  // 1순위
+  // 앞부분 일치
+  // -----------------------------
+
+  const startsWithResults =
+
+    parkingData.filter(
+      (parking) => {
+
+        const name =
+          normalizeSearch(
+            parking.parknm
+          );
+
+
+        return (
+          name.startsWith(
+            normalizedKeyword
+          )
+        );
+
+      }
+    );
+
+
+  // -----------------------------
+  // 2순위
+  // 중간 포함
+  // -----------------------------
+
+  const includesResults =
+
+    parkingData.filter(
+      (parking) => {
+
+        const name =
+          normalizeSearch(
+            parking.parknm
+          );
+
+
+        return (
+
+          !name.startsWith(
+            normalizedKeyword
+          ) &&
+
+          name.includes(
+            normalizedKeyword
+          )
+
+        );
+
+      }
+    );
+
+
+  return [
+
+    ...startsWithResults,
+
+    ...includesResults
+
+  ];
+
+}
+
+
+// =====================================================
+// 결과 화면 출력
 // =====================================================
 
 function renderResults() {
-
-  // 원본 검색결과는 유지하고
-  // 복사본을 만들어 정렬한다.
 
   let results =
     [...currentResults];
 
 
   // ===================================================
-  // 빈자리 많은 순 정렬
+  // 빈자리 많은 순
   // ===================================================
 
   if (
@@ -457,6 +533,50 @@ function renderResults() {
 
     results.sort(
       (a, b) => {
+
+        // null을 Number로 바꾸면 0이 되므로
+        // 먼저 데이터 존재 여부를 확인한다.
+
+        const aHasValue =
+
+          a.curravacnt !== null &&
+
+          a.curravacnt !== undefined;
+
+
+        const bHasValue =
+
+          b.curravacnt !== null &&
+
+          b.curravacnt !== undefined;
+
+
+        // 둘 다 정보 없음
+        if (
+          !aHasValue &&
+          !bHasValue
+        ) {
+
+          return 0;
+
+        }
+
+
+        // A만 정보 없음
+        if (!aHasValue) {
+
+          return 1;
+
+        }
+
+
+        // B만 정보 없음
+        if (!bHasValue) {
+
+          return -1;
+
+        }
+
 
         const aAvailable =
           Number(
@@ -470,53 +590,6 @@ function renderResults() {
           );
 
 
-        // -------------------------
-        // 유효한 숫자인지 확인
-        // -------------------------
-
-        const aValid =
-          Number.isFinite(
-            aAvailable
-          );
-
-
-        const bValid =
-          Number.isFinite(
-            bAvailable
-          );
-
-
-        // 둘 다 정보 없음
-        if (
-          !aValid &&
-          !bValid
-        ) {
-
-          return 0;
-
-        }
-
-
-        // A만 정보 없음
-        if (!aValid) {
-
-          return 1;
-
-        }
-
-
-        // B만 정보 없음
-        if (!bValid) {
-
-          return -1;
-
-        }
-
-
-        // -------------------------
-        // 빈자리 많은 순
-        // -------------------------
-
         return (
           bAvailable -
           aAvailable
@@ -529,7 +602,7 @@ function renderResults() {
 
 
   // ===================================================
-  // 검색 결과가 없는 경우
+  // 검색 결과 없음
   // ===================================================
 
   if (
@@ -553,7 +626,7 @@ function renderResults() {
 
 
   // ===================================================
-  // 검색 결과 카드 출력
+  // 카드 출력
   // ===================================================
 
   resultDiv.innerHTML =
@@ -575,17 +648,19 @@ function renderResults() {
 
 function searchParking() {
 
-  const originalKeyword =
+  const keyword =
 
     searchInput.value
       .trim();
 
 
-  // ===================================================
-  // 검색어가 없는 경우
-  // ===================================================
+  // -----------------------------
+  // 검색어 없음
+  // -----------------------------
 
-  if (!originalKeyword) {
+  if (!keyword) {
+
+    currentKeyword = "";
 
     currentResults = [];
 
@@ -610,96 +685,27 @@ function searchParking() {
   }
 
 
-  // ===================================================
-  // 검색어 정규화
-  // ===================================================
+  // -----------------------------
+  // 검색어 저장
+  // -----------------------------
 
-  const keyword =
+  currentKeyword =
+    keyword;
 
-    normalizeSearch(
-      originalKeyword
+
+  // -----------------------------
+  // 검색 결과 생성
+  // -----------------------------
+
+  currentResults =
+    makeSearchResults(
+      currentKeyword
     );
 
 
-  // ===================================================
-  // 1순위
-  //
-  // 검색어로 시작하는 주차장
-  // ===================================================
-
-  const startsWithResults =
-
-    parkingData.filter(
-      (parking) => {
-
-        const name =
-
-          normalizeSearch(
-            parking.parknm
-          );
-
-
-        return (
-          name.startsWith(
-            keyword
-          )
-        );
-
-      }
-    );
-
-
-  // ===================================================
-  // 2순위
-  //
-  // 이름 중간에 검색어가 들어가는 주차장
-  // ===================================================
-
-  const includesResults =
-
-    parkingData.filter(
-      (parking) => {
-
-        const name =
-
-          normalizeSearch(
-            parking.parknm
-          );
-
-
-        return (
-
-          !name.startsWith(
-            keyword
-          ) &&
-
-          name.includes(
-            keyword
-          )
-
-        );
-
-      }
-    );
-
-
-  // ===================================================
-  // 앞부분 일치 결과를 먼저 저장
-  // ===================================================
-
-  currentResults = [
-
-    ...startsWithResults,
-
-    ...includesResults
-
-  ];
-
-
-  // ===================================================
-  // 새 검색을 하면
-  // 기본순으로 초기화
-  // ===================================================
+  // -----------------------------
+  // 새 검색 시 기본순
+  // -----------------------------
 
   currentSort =
     "default";
@@ -708,18 +714,14 @@ function searchParking() {
   updateSortButtons();
 
 
-  // ===================================================
-  // 검색 결과 건수 표시
-  // ===================================================
+  // -----------------------------
+  // 검색 결과 표시
+  // -----------------------------
 
   summaryDiv.textContent =
 
     `검색 결과 ${currentResults.length}건`;
 
-
-  // ===================================================
-  // 화면 출력
-  // ===================================================
 
   renderResults();
 
@@ -727,12 +729,11 @@ function searchParking() {
 
 
 // =====================================================
-// 정렬 버튼 상태 표시
+// 정렬 버튼 상태
 // =====================================================
 
 function updateSortButtons() {
 
-  // 기본순
   if (
     currentSort ===
     "default"
@@ -753,7 +754,6 @@ function updateSortButtons() {
 
   }
 
-  // 빈자리 많은 순
   else {
 
     availableSortButton
@@ -768,6 +768,129 @@ function updateSortButtons() {
       .remove(
         "active"
       );
+
+  }
+
+}
+
+
+// =====================================================
+// 최신정보 새로고침
+// =====================================================
+
+async function refreshParkingData() {
+
+  try {
+
+    // 버튼 중복 클릭 방지
+    refreshButton.disabled =
+      true;
+
+
+    refreshButton.textContent =
+      "새로고침 중...";
+
+
+    // -----------------------------
+    // 최신 API 호출
+    // -----------------------------
+
+    const response =
+      await fetch(
+        "/api/parking",
+        {
+          cache: "no-store"
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "최신 주차정보를 불러오지 못했습니다."
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (!data.success) {
+
+      throw new Error(
+        data.message ||
+        "API 오류"
+      );
+
+    }
+
+
+    // -----------------------------
+    // 전체 데이터 교체
+    // -----------------------------
+
+    parkingData =
+      data.items || [];
+
+
+    // =================================================
+    // 기존 검색어가 있는 경우
+    // 다시 같은 검색 실행
+    // =================================================
+
+    if (currentKeyword) {
+
+      currentResults =
+        makeSearchResults(
+          currentKeyword
+        );
+
+
+      summaryDiv.textContent =
+
+        `검색 결과 ${currentResults.length}건 · 최신정보 반영`;
+
+
+      // currentSort는 그대로 유지
+      renderResults();
+
+    }
+
+
+    // =================================================
+    // 검색 전이라면
+    // 데이터만 갱신
+    // =================================================
+
+    else {
+
+      summaryDiv.textContent =
+
+        `실시간 주차장 ${parkingData.length}개 최신정보를 불러왔습니다.`;
+
+    }
+
+
+  } catch (error) {
+
+    summaryDiv.textContent =
+      "새로고침 중 오류가 발생했습니다.";
+
+
+    console.error(error);
+
+  }
+
+  finally {
+
+    refreshButton.disabled =
+      false;
+
+
+    refreshButton.textContent =
+      "↻ 최신정보 새로고침";
 
   }
 
@@ -823,6 +946,19 @@ availableSortButton.addEventListener(
 
 
 // =====================================================
+// 새로고침 버튼
+// =====================================================
+
+refreshButton.addEventListener(
+
+  "click",
+
+  refreshParkingData
+
+);
+
+
+// =====================================================
 // 검색 버튼
 // =====================================================
 
@@ -860,7 +996,7 @@ searchInput.addEventListener(
 
 
 // =====================================================
-// 페이지 시작
+// 최초 실행
 // =====================================================
 
 loadParkingData();
