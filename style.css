@@ -265,15 +265,32 @@ h1 {
 
 
 /* =========================
-   카드 하단 버튼
+   주소 안내 / 지도보기
 ========================= */
+
+.address-notice {
+  margin-top: 16px;
+
+  padding: 10px 12px;
+
+  border-radius: 8px;
+
+  background: #fff8e1;
+
+  color: #6d5a16;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
 
 .card-actions {
   display: flex;
 
   justify-content: flex-end;
 
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 
@@ -284,15 +301,13 @@ h1 {
 
   justify-content: center;
 
-  min-width: 120px;
-
   padding: 11px 16px;
 
   border-radius: 8px;
 
-  background: #1565c0;
+  background: #fee500;
 
-  color: white;
+  color: #191919;
 
   font-size: 14px;
 
@@ -305,7 +320,7 @@ h1 {
 
 
 .map-button:hover {
-  background: #0d47a1;
+  background: #f3da00;
 }
 
 
