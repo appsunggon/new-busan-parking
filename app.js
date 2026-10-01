@@ -191,6 +191,68 @@ function displayValue(
 
 
 // =====================================================
+// 지도보기 URL 만들기
+// =====================================================
+//
+// 별도의 지도 API 키 없이 카카오맵 검색 화면을 연다.
+// 도로명주소가 있으면 도로명주소를 우선 사용하고,
+// 주소가 없으면 "부산 + 주차장명"으로 검색한다.
+//
+// =====================================================
+
+function getParkingAddress(
+  parking
+) {
+
+  if (
+    parking.doroAddr &&
+    parking.doroAddr !== "-"
+  ) {
+
+    return parking.doroAddr;
+
+  }
+
+
+  if (
+    parking.jibunAddr &&
+    parking.jibunAddr !== "-"
+  ) {
+
+    return parking.jibunAddr;
+
+  }
+
+
+  return "";
+
+}
+
+
+function getMapUrl(
+  parking
+) {
+
+  const address =
+    getParkingAddress(
+      parking
+    );
+
+
+  const query = address
+    ? `${parking.parknm} ${address}`
+    : `부산 ${parking.parknm}`;
+
+
+  return (
+    "https://map.kakao.com/link/search/" +
+    encodeURIComponent(query)
+  );
+
+}
+
+
+// =====================================================
 // 주차장 카드 생성
 // =====================================================
 
@@ -212,16 +274,21 @@ function createParkingCard(
   // 주소
   // -----------------------------
 
+  const rawAddress =
+    getParkingAddress(
+      parking
+    );
+
+
   const address =
+    rawAddress ||
+    "정보 없음";
 
-    parking.doroAddr &&
-    parking.doroAddr !== "-"
 
-      ? parking.doroAddr
-
-      : displayValue(
-          parking.jibunAddr
-        );
+  const mapUrl =
+    getMapUrl(
+      parking
+    );
 
 
   // -----------------------------
@@ -419,6 +486,20 @@ function createParkingCard(
 
         </div>
 
+
+      </div>
+
+
+      <div class="card-actions">
+
+        <a
+          class="map-button"
+          href="${mapUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          📍 지도보기
+        </a>
 
       </div>
 
