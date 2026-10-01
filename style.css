@@ -398,3 +398,57 @@ h1 {
     width: 100%;
   }
 }
+
+/* =========================
+   PWA 설치 안내
+========================= */
+
+.install-box {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-bottom: 18px;
+
+  padding: 12px 14px;
+
+  border-radius: 8px;
+
+  background: white;
+
+  border: 1px solid #e0e0e0;
+}
+
+
+.install-button {
+  padding: 9px 14px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: #1565c0;
+
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+.install-button:hover {
+  background: #0d47a1;
+}
+
+
+.install-guide {
+  color: #666;
+
+  font-size: 13px;
+}
+

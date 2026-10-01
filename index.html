@@ -7,6 +7,10 @@
   <title>부산 공영주차장</title>
 
   <link rel="stylesheet" href="style.css">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1565c0">
+  <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 
 <body>
@@ -35,6 +39,18 @@
 
     </div>
 
+
+
+    <!-- PWA 설치 안내 -->
+    <div class="install-box">
+      <button id="installButton" class="install-button" hidden>
+        앱처럼 설치하기
+      </button>
+
+      <span class="install-guide">
+        휴대폰 홈 화면에 추가하면 앱처럼 사용할 수 있습니다.
+      </span>
+    </div>
 
     <!-- 검색 결과 안내 -->
     <div id="summary"></div>
@@ -79,6 +95,81 @@
 
 
   <script src="app.js"></script>
+
+  <script>
+    let deferredInstallPrompt = null;
+
+    const installButton =
+      document.getElementById("installButton");
+
+
+    window.addEventListener(
+      "beforeinstallprompt",
+      (event) => {
+
+        event.preventDefault();
+
+        deferredInstallPrompt =
+          event;
+
+        installButton.hidden =
+          false;
+
+      }
+    );
+
+
+    installButton.addEventListener(
+      "click",
+      async () => {
+
+        if (!deferredInstallPrompt) {
+          return;
+        }
+
+        deferredInstallPrompt.prompt();
+
+        await deferredInstallPrompt.userChoice;
+
+        deferredInstallPrompt =
+          null;
+
+        installButton.hidden =
+          true;
+
+      }
+    );
+
+
+    window.addEventListener(
+      "appinstalled",
+      () => {
+
+        deferredInstallPrompt =
+          null;
+
+        installButton.hidden =
+          true;
+
+      }
+    );
+
+
+    if ("serviceWorker" in navigator) {
+
+      window.addEventListener(
+        "load",
+        () => {
+
+          navigator.serviceWorker.register(
+            "./service-worker.js"
+          );
+
+        }
+      );
+
+    }
+  </script>
 
 </body>
 </html>
