@@ -195,8 +195,8 @@ function displayValue(
 // =====================================================
 //
 // 별도의 지도 API 키 없이 카카오맵 검색 화면을 연다.
-// 도로명주소가 있으면 도로명주소를 우선 사용하고,
-// 주소가 없으면 "부산 + 주차장명"으로 검색한다.
+// 공공데이터 주소가 오래되거나 부정확할 수 있으므로,
+// 지도 검색에는 주소를 넣지 않고 "부산 + 주차장명"만 사용한다.
 //
 // =====================================================
 
@@ -233,15 +233,8 @@ function getMapUrl(
   parking
 ) {
 
-  const address =
-    getParkingAddress(
-      parking
-    );
-
-
-  const query = address
-    ? `${parking.parknm} ${address}`
-    : `부산 ${parking.parknm}`;
+  const query =
+    `부산 ${parking.parknm}`;
 
 
   return (
