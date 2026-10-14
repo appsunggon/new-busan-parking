@@ -1,12 +1,11 @@
 // V6.3-1
 // Gemini API 연결 확인용 Cloudflare Pages Function
 //
-// 배포 후:
-// https://new-busan-parking.pages.dev/api/ai-test
-//
-// 주의:
-// GEMINI_API_KEY는 Cloudflare Secret으로만 저장하고
-// 이 파일이나 app.js에 직접 넣지 않는다.
+// 수정 내용:
+// - Gemini 3.8 Flash는 기본적으로 thinking을 사용하므로
+//   maxOutputTokens를 너무 작게 잡으면 생각 토큰만 쓰고
+//   실제 답변 텍스트가 비어 있을 수 있다.
+// - thinkingLevel을 low로 지정하고 작은 maxOutputTokens 제한은 제거한다.
 
 const MODEL =
   "gemini-3.8-flash";
@@ -49,7 +48,6 @@ export async function onRequestGet(
     context.env.GEMINI_API_KEY;
 
 
-  // Cloudflare Secret 설정 여부 확인
   if (!apiKey) {
 
     return jsonResponse(
@@ -89,15 +87,16 @@ export async function onRequestGet(
                   parts: [
                     {
                       text:
-                        "응답은 반드시 다음 문장 하나만 출력하세요: Gemini API 연결 성공"
+                        "다른 설명 없이 정확히 이 문장만 출력하세요: Gemini API 연결 성공"
                     }
                   ]
                 }
               ],
 
               generationConfig: {
-                temperature: 0,
-                maxOutputTokens: 30
+                thinkingConfig: {
+                  thinkingLevel: "low"
+                }
               }
             })
         }
@@ -127,12 +126,20 @@ export async function onRequestGet(
     }
 
 
+    const candidate =
+      data?.candidates?.[0];
+
+
     const text =
-      data?.candidates?.[0]
-        ?.content?.parts
-        ?.map(
+      candidate?.content?.parts
+        ?.filter(
           part =>
-            part?.text || ""
+            !part?.thought &&
+            typeof part?.text === "string"
+        )
+        .map(
+          part =>
+            part.text
         )
         .join("")
         .trim();
@@ -147,7 +154,10 @@ export async function onRequestGet(
           "Cloudflare에서 Gemini API 호출에 성공했습니다.",
         geminiResponse:
           text ||
-          "응답 텍스트 없음"
+          "응답 텍스트 없음",
+        finishReason:
+          candidate?.finishReason ||
+          "정보 없음"
       }
     );
 
@@ -173,7 +183,6 @@ export async function onRequestGet(
 }
 
 
-// POST 등 다른 방식은 사용하지 않도록 제한
 export async function onRequest(
   context
 ) {
