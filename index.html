@@ -52,6 +52,36 @@
       </span>
     </div>
 
+
+    <!-- V6 AI 요청 영역 -->
+    <section class="ai-box">
+      <h2>AI에게 주차장 찾기 요청</h2>
+
+      <p class="ai-help">
+        예: 화명 쪽에서 지금 빈자리 많은 주차장 찾아줘
+      </p>
+
+      <div class="ai-input-row">
+        <input
+          type="text"
+          id="aiInput"
+          placeholder="자연어로 원하는 조건을 입력하세요."
+        >
+
+        <button id="aiSendButton">
+          보내기
+        </button>
+      </div>
+
+      <div id="aiStatus" class="ai-status">
+        V6에서는 AI가 요청을 이해한 뒤 MCP Tool을 선택합니다.
+      </div>
+
+      <div id="aiAnswer" class="ai-answer" hidden></div>
+
+      <div id="aiResult"></div>
+    </section>
+
     <!-- 검색 결과 안내 -->
     <div id="summary"></div>
 

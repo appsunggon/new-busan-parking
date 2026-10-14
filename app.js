@@ -1080,3 +1080,134 @@ searchInput.addEventListener(
 // =====================================================
 
 loadParkingData();
+
+// =====================================================
+// V6 결과 표시용 공통 함수
+// =====================================================
+//
+// 실제 AI/MCP 연결 후에는 아래 함수에
+// AI가 정리한 설명(summary)과 MCP 조회 결과(items)를 넘긴다.
+//
+// V6의 결과는 "AI 설명 + 기존 주차장 카드" 형태로 표시한다.
+//
+// =====================================================
+
+function renderAiResult(
+  summary,
+  items
+) {
+
+  const aiAnswer =
+    document.getElementById(
+      "aiAnswer"
+    );
+
+
+  const aiResult =
+    document.getElementById(
+      "aiResult"
+    );
+
+
+  aiAnswer.hidden =
+    false;
+
+
+  aiAnswer.textContent =
+    summary;
+
+
+  if (
+    !items ||
+    items.length === 0
+  ) {
+
+    aiResult.innerHTML =
+      '<div class="no-result">조건에 맞는 주차장을 찾지 못했습니다.</div>';
+
+    return;
+
+  }
+
+
+  aiResult.innerHTML =
+    items
+      .map(
+        createParkingCard
+      )
+      .join("");
+
+}
+
+
+// =====================================================
+// V6 AI 입력창
+// =====================================================
+//
+// 현재 단계에서는 화면과 결과 출력 구조만 준비한다.
+// 실제 자연어 이해와 MCP Tool 선택은 다음 단계에서
+// AI API + MCP 연결 후 구현한다.
+//
+// =====================================================
+
+const aiInput =
+  document.getElementById(
+    "aiInput"
+  );
+
+
+const aiSendButton =
+  document.getElementById(
+    "aiSendButton"
+  );
+
+
+const aiStatus =
+  document.getElementById(
+    "aiStatus"
+  );
+
+
+async function handleAiRequest() {
+
+  const text =
+    aiInput.value.trim();
+
+
+  if (!text) {
+
+    aiStatus.textContent =
+      "요청 내용을 입력해주세요.";
+
+    return;
+
+  }
+
+
+  aiStatus.textContent =
+    "현재는 V6 결과 화면 구조까지 준비된 단계입니다. 다음 단계에서 AI API와 MCP를 연결합니다.";
+
+}
+
+
+aiSendButton.addEventListener(
+  "click",
+  handleAiRequest
+);
+
+
+aiInput.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key ===
+      "Enter"
+    ) {
+
+      handleAiRequest();
+
+    }
+
+  }
+);

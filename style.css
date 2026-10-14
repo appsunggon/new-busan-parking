@@ -452,3 +452,88 @@ h1 {
   font-size: 13px;
 }
 
+
+
+/* =========================
+   V6 AI 요청 영역
+========================= */
+
+.ai-box {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f3fbf6;
+  border: 1px solid #b9e6c7;
+}
+
+.ai-box h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: #176b37;
+}
+
+.ai-help {
+  margin: 0 0 14px;
+  color: #56705f;
+  font-size: 14px;
+}
+
+.ai-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.ai-input-row input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 1px solid #b7c9bd;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.ai-input-row button {
+  padding: 14px 22px;
+  border: none;
+  border-radius: 8px;
+  background: #169447;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-input-row button:hover {
+  background: #0f7738;
+}
+
+.ai-status {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: white;
+  color: #5c6b60;
+  font-size: 13px;
+}
+
+.ai-answer {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-left: 4px solid #169447;
+  background: white;
+  line-height: 1.6;
+}
+
+#aiResult {
+  margin-top: 14px;
+}
+
+@media (max-width: 600px) {
+  .ai-input-row {
+    flex-direction: column;
+  }
+
+  .ai-input-row button {
+    width: 100%;
+  }
+}
