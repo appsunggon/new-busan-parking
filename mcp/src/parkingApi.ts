@@ -22,7 +22,7 @@ type ParkingApiResponse = {
 };
 
 const DEFAULT_API_URL =
-  "https://v-busan-parking.pages.dev/api/parking";
+  "https://new-busan-parking.pages.dev/api/parking";
 
 export async function fetchParkingData(): Promise<ParkingItem[]> {
   const apiUrl =
