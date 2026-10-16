@@ -1145,8 +1145,8 @@ function renderAiResult(
 // =====================================================
 //
 // 현재 단계에서는 화면과 결과 출력 구조만 준비한다.
-// 실제 자연어 이해와 MCP Tool 선택은 다음 단계에서
-// AI API + MCP 연결 후 구현한다.
+// 자연어 이해는 Gemini API가 담당하고,
+// 실제 주차장 조회는 Cloudflare Function에서 /api/parking을 사용한다.
 //
 // =====================================================
 
@@ -1184,8 +1184,111 @@ async function handleAiRequest() {
   }
 
 
+  aiSendButton.disabled =
+    true;
+
+
   aiStatus.textContent =
-    "현재는 V6 결과 화면 구조까지 준비된 단계입니다. 다음 단계에서 AI API와 MCP를 연결합니다.";
+    "AI가 요청을 이해하고 주차장 정보를 찾고 있습니다...";
+
+
+  const aiAnswer =
+    document.getElementById(
+      "aiAnswer"
+    );
+
+
+  const aiResult =
+    document.getElementById(
+      "aiResult"
+    );
+
+
+  aiAnswer.hidden =
+    true;
+
+
+  aiResult.innerHTML =
+    "";
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/ai-parking",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              message:
+                text
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      throw new Error(
+        data.detail ||
+        data.message ||
+        "AI 요청 처리에 실패했습니다."
+      );
+
+    }
+
+
+    renderAiResult(
+      data.summary,
+      data.items
+    );
+
+
+    aiStatus.textContent =
+      "AI가 요청을 이해하고 실제 주차장 정보를 조회했습니다.";
+
+  }
+  catch (error) {
+
+    aiStatus.textContent =
+      "AI 요청 처리 중 오류가 발생했습니다.";
+
+
+    aiAnswer.hidden =
+      false;
+
+
+    aiAnswer.textContent =
+      error instanceof Error
+        ? error.message
+        : "알 수 없는 오류가 발생했습니다.";
+
+
+    aiResult.innerHTML =
+      "";
+
+  }
+  finally {
+
+    aiSendButton.disabled =
+      false;
+
+  }
 
 }
 
