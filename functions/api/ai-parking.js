@@ -57,6 +57,20 @@ function normalizeSearch(
 }
 
 
+// 사용자가 "화명역 주차장"처럼 일반명사까지 입력해도
+// 실제 데이터의 "화명역"과 매칭되도록 상세조회용 이름을 한 번 더 정리한다.
+function normalizeParkingNameForMatch(
+  text = ""
+) {
+
+  return normalizeSearch(text)
+    .replace(/공영주차장/g, "")
+    .replace(/주차장/g, "")
+    .replace(/주차/g, "");
+
+}
+
+
 function getSearchText(
   parking
 ) {
@@ -216,7 +230,7 @@ async function understandRequest(
 
 규칙:
 - keyword에는 "쪽", "근처", "주차장 찾아줘" 같은 불필요한 표현을 제거하세요.
-- 상세조회이면 name에 주차장 이름을 넣으세요.
+- 상세조회이면 name에 실제 고유 주차장 이름만 넣으세요. 사용자가 붙인 일반 표현 "주차장", "공영주차장"은 가능하면 제거하세요.
 - 상세조회가 아니면 name은 빈 문자열로 두세요.
 - limit 기본값은 5입니다.
 - 사용자가 특정 개수를 요청하면 limit에 반영하세요.
@@ -506,7 +520,7 @@ function handleParkingDetail(
 
 
   const normalizedTarget =
-    normalizeSearch(
+    normalizeParkingNameForMatch(
       targetName
     );
 
@@ -514,7 +528,7 @@ function handleParkingDetail(
   let item =
     parkingData.find(
       parking =>
-        normalizeSearch(
+        normalizeParkingNameForMatch(
           parking.parknm || ""
         ) === normalizedTarget
     );
@@ -523,9 +537,28 @@ function handleParkingDetail(
   if (!item) {
 
     const candidates =
-      searchItems(
-        parkingData,
-        targetName
+      parkingData.filter(
+        parking => {
+
+          const parkingName =
+            normalizeParkingNameForMatch(
+              parking.parknm || ""
+            );
+
+
+          return (
+            parkingName.startsWith(
+              normalizedTarget
+            ) ||
+            parkingName.includes(
+              normalizedTarget
+            ) ||
+            normalizedTarget.includes(
+              parkingName
+            )
+          );
+
+        }
       );
 
 
