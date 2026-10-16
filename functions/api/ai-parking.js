@@ -363,59 +363,126 @@ intent는 다음 4개 중 하나입니다.
 ${message}`;
 
 
-  const response =
-    await fetch(
-      GEMINI_URL,
-      {
-        method: "POST",
+  let response;
+  let data;
 
-        headers: {
-          "Content-Type":
-            "application/json",
 
-          "x-goog-api-key":
-            apiKey
-        },
+  // Gemini의 일시적인 고수요(429/503) 상황은 자동으로 최대 2회 재시도한다.
+  // 사용자의 검색 조건이나 /api/parking 데이터 문제와는 별개의 외부 API 상태이다.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
 
-        body:
-          JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    text:
-                      prompt
-                  }
-                ]
+    response =
+      await fetch(
+        GEMINI_URL,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "x-goog-api-key":
+              apiKey
+          },
+
+          body:
+            JSON.stringify({
+              contents: [
+                {
+                  role: "user",
+                  parts: [
+                    {
+                      text:
+                        prompt
+                    }
+                  ]
+                }
+              ],
+
+              generationConfig: {
+                temperature: 0,
+
+                responseMimeType:
+                  "application/json",
+
+                thinkingConfig: {
+                  thinkingLevel:
+                    "low"
+                }
               }
-            ],
+            })
+        }
+      );
 
-            generationConfig: {
-              temperature: 0,
 
-              responseMimeType:
-                "application/json",
+    data =
+      await response.json();
 
-              thinkingConfig: {
-                thinkingLevel:
-                  "low"
-              }
-            }
-          })
-      }
+
+    if (response.ok) {
+      break;
+    }
+
+
+    const temporaryError =
+      response.status === 429 ||
+      response.status === 503 ||
+      /high demand|temporar|overload|resource exhausted/i.test(
+        data?.error?.message || ""
+      );
+
+
+    if (
+      !temporaryError ||
+      attempt === 2
+    ) {
+      break;
+    }
+
+
+    await new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          700 * (attempt + 1)
+        )
     );
 
-
-  const data =
-    await response.json();
+  }
 
 
-  if (!response.ok) {
+  if (!response?.ok) {
+
+    const errorMessage =
+      data?.error?.message ||
+      "Gemini API 요청 분석에 실패했습니다.";
+
+
+    const temporaryError =
+      response?.status === 429 ||
+      response?.status === 503 ||
+      /high demand|temporar|overload|resource exhausted/i.test(
+        errorMessage
+      );
+
+
+    if (temporaryError) {
+
+      const error =
+        new Error(
+          "현재 AI 요청이 몰려 잠시 처리하지 못했습니다. 잠시 후 다시 보내주세요."
+        );
+
+      error.temporary =
+        true;
+
+      throw error;
+
+    }
+
 
     throw new Error(
-      data?.error?.message ||
-      "Gemini API 요청 분석에 실패했습니다."
+      errorMessage
     );
 
   }
@@ -1004,7 +1071,13 @@ export async function onRequestPost(
         detail:
           error instanceof Error
             ? error.message
-            : String(error)
+            : String(error),
+
+        temporary:
+          Boolean(
+            error &&
+            error.temporary
+          )
       },
       500
     );
