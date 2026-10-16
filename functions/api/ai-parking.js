@@ -14,6 +14,9 @@
 // → 검색/필터/정렬
 // → 결과 반환
 
+const APP_VERSION =
+  "V6.4.1-hybrid-local-first";
+
 const MODEL =
   "gemini-3.8-flash";
 
@@ -604,6 +607,259 @@ ${message}`;
 }
 
 
+// Gemini가 일시적으로 혼잡할 때 사용하는 최소 기능의 예비 해석기.
+// AI를 대체하려는 목적이 아니라, "빈자리 N대 이상", "N개만",
+// "제일 여유 있는 곳", 상세조회 같은 대표 문장을 계속 처리하기 위한 안전장치다.
+function understandRequestFallback(
+  message
+) {
+
+  const source =
+    String(message || "")
+      .trim();
+
+
+  const minMatch =
+    source.match(
+      /빈자리\s*(\d+)\s*대?\s*이상/
+    );
+
+
+  const limitMatch =
+    source.match(
+      /(\d+)\s*(?:개|곳)\s*만/
+    );
+
+
+  const minAvailable =
+    minMatch
+      ? Number(minMatch[1])
+      : null;
+
+
+  let limit =
+    limitMatch
+      ? Number(limitMatch[1])
+      : 5;
+
+
+  if (
+    /(?:가장|제일|한\s*곳)/.test(source)
+  ) {
+    limit = 1;
+  }
+
+
+  limit =
+    Math.max(
+      1,
+      Math.min(
+        Number(limit || 5),
+        20
+      )
+    );
+
+
+  const isDetail =
+    /요금|운영\s*시간|운영시간|주소|관리\s*기관|관리기관|상세/.test(
+      source
+    );
+
+
+  const isAvailable =
+    /빈자리|여유|주차\s*가능|주차가능/.test(
+      source
+    );
+
+
+  const isParkingRelated =
+    /주차|빈자리|여유|요금|운영\s*시간|운영시간|관리\s*기관|관리기관/.test(
+      source
+    );
+
+
+  if (!isParkingRelated) {
+
+    return {
+      intent: "clarify",
+      keyword: "",
+      name: "",
+      minAvailable: null,
+      sort: "default",
+      limit: 5,
+      clarification:
+        "현재 AI가 혼잡합니다. 지역이나 주차장 이름과 원하는 조건을 입력해주세요. 예: 부산대에서 빈자리 10대 이상인 곳 3개만 찾아줘"
+    };
+
+  }
+
+
+  let keyword =
+    source
+      // 수치 조건 제거
+      .replace(
+        /빈자리\s*\d+\s*대?\s*이상(?:인)?/g,
+        " "
+      )
+      .replace(
+        /\d+\s*(?:개|곳)\s*만/g,
+        " "
+      )
+      // 상세조건 제거
+      .replace(
+        /요금(?:과|와)?/g,
+        " "
+      )
+      .replace(
+        /운영\s*시간(?:과|와)?|운영시간(?:과|와)?/g,
+        " "
+      )
+      .replace(
+        /주소|관리\s*기관|관리기관|상세(?:정보)?/g,
+        " "
+      )
+      // 검색 의도 표현 제거
+      .replace(
+        /현재|지금|가장|제일|여유\s*있는|여유있는|빈자리\s*많은\s*순|빈자리\s*많은|주차\s*가능(?:한)?/g,
+        " "
+      )
+      .replace(
+        /공영\s*주차장|주차장/g,
+        " "
+      )
+      .replace(
+        /찾아\s*줘|찾아줘|찾아|알려\s*줘|알려줘|알려|보여\s*줘|보여줘|보여/g,
+        " "
+      )
+      // 조사/방향 표현 제거
+      .replace(
+        /(?:쪽에서|근처에서|주변에서|에서|쪽|근처|주변)/g,
+        " "
+      )
+      .replace(
+        /(?:인\s*곳|곳)/g,
+        " "
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+
+  // 흔히 남는 조사/연결어 정리
+  keyword =
+    keyword
+      .replace(
+        /(?:으로|로|은|는|이|가|을|를|과|와|의)$/,
+        ""
+      )
+      .trim();
+
+
+  if (isDetail) {
+
+    return {
+      intent: "get_parking_detail",
+      keyword,
+      name: keyword,
+      minAvailable: null,
+      sort: "default",
+      limit,
+      clarification: ""
+    };
+
+  }
+
+
+  if (
+    isAvailable ||
+    minAvailable !== null
+  ) {
+
+    return {
+      intent: "find_available_parking",
+      keyword,
+      name: "",
+      minAvailable,
+      sort: "available_desc",
+      limit,
+      clarification: ""
+    };
+
+  }
+
+
+  return {
+    intent: "search_parking",
+    keyword,
+    name: "",
+    minAvailable: null,
+    sort: "default",
+    limit,
+    clarification: ""
+  };
+
+}
+
+
+
+// 흔한 주차장 요청은 Gemini 호출 전에 프로그램 규칙으로 바로 처리한다.
+// 이렇게 하면 Gemini가 혼잡해도 일반 검색/빈자리/상세조회는 계속 동작한다.
+function canUseLocalRule(
+  message,
+  requestInfo
+) {
+
+  if (
+    !requestInfo ||
+    requestInfo.intent === "clarify"
+  ) {
+    return false;
+  }
+
+
+  const source =
+    String(message || "");
+
+
+  // 상세조회 표현
+  if (
+    /요금|운영\s*시간|운영시간|주소|관리\s*기관|관리기관|상세/.test(
+      source
+    )
+  ) {
+    return Boolean(
+      requestInfo.name ||
+      requestInfo.keyword
+    );
+  }
+
+
+  // 빈자리/여유/최소 빈자리/개수 제한 등 조건검색
+  if (
+    /빈자리|여유|주차\s*가능|주차가능|\d+\s*대?\s*이상|\d+\s*(?:개|곳)\s*만|가장|제일/.test(
+      source
+    )
+  ) {
+    return true;
+  }
+
+
+  // 일반적인 "OO 주차장 찾아줘" 형태
+  if (
+    /주차장|주차/.test(source) &&
+    requestInfo.keyword
+  ) {
+    return true;
+  }
+
+
+  return false;
+
+}
+
+
 async function fetchParkingData(
   requestUrl
 ) {
@@ -914,20 +1170,6 @@ export async function onRequestPost(
     context.env.GEMINI_API_KEY;
 
 
-  if (!apiKey) {
-
-    return jsonResponse(
-      {
-        success: false,
-        message:
-          "GEMINI_API_KEY가 설정되어 있지 않습니다."
-      },
-      500
-    );
-
-  }
-
-
   try {
 
     const body =
@@ -945,6 +1187,8 @@ export async function onRequestPost(
       return jsonResponse(
         {
           success: false,
+          version:
+            APP_VERSION,
           message:
             "AI에게 요청할 내용을 입력해주세요."
         },
@@ -954,15 +1198,85 @@ export async function onRequestPost(
     }
 
 
-    // 1. Gemini는 사용자 문장을 구조화된 검색 조건으로만 변환
-    const requestInfo =
-      await understandRequest(
-        apiKey,
+    // 1. 먼저 프로그램의 기본 규칙으로 흔한 주차장 문장을 해석한다.
+    //    일반검색/빈자리/상세조회가 명확하면 Gemini를 호출하지 않는다.
+    const localInfo =
+      understandRequestFallback(
         message
       );
 
 
-    // 2. 이해하기 어려운 요청은 실제 데이터 조회 전에 사용자에게 재질문
+    let requestInfo;
+    let localRuleUsed =
+      false;
+    let fallbackUsed =
+      false;
+
+
+    if (
+      canUseLocalRule(
+        message,
+        localInfo
+      )
+    ) {
+
+      requestInfo =
+        localInfo;
+
+      localRuleUsed =
+        true;
+
+    }
+    else {
+
+      // 2. 기본 규칙으로 확신하기 어려운 문장만 Gemini에게 해석을 요청한다.
+      if (!apiKey) {
+
+        requestInfo =
+          localInfo;
+
+        fallbackUsed =
+          true;
+
+      }
+      else {
+
+        try {
+
+          requestInfo =
+            await understandRequest(
+              apiKey,
+              message
+            );
+
+        }
+        catch (error) {
+
+          // Gemini 혼잡 시 기본 규칙으로 안전하게 대체
+          if (
+            error &&
+            error.temporary
+          ) {
+
+            requestInfo =
+              localInfo;
+
+            fallbackUsed =
+              true;
+
+          }
+          else {
+            throw error;
+          }
+
+        }
+
+      }
+
+    }
+
+
+    // 3. 그래도 의미가 불명확하면 사용자에게 다시 입력하도록 안내
     if (
       requestInfo.intent ===
       "clarify"
@@ -972,6 +1286,9 @@ export async function onRequestPost(
         {
           success: true,
 
+          version:
+            APP_VERSION,
+
           message,
 
           interpretation:
@@ -980,6 +1297,9 @@ export async function onRequestPost(
           summary:
             requestInfo.clarification ||
             "지역이나 주차장 이름, 원하는 조건을 조금 더 구체적으로 입력해주세요.",
+
+          localRuleUsed,
+          fallbackUsed,
 
           items: [],
 
@@ -991,14 +1311,14 @@ export async function onRequestPost(
     }
 
 
-    // 3. 실제 주차장 정보는 반드시 기존 통합 API에서 조회
+    // 4. 실제 주차장 정보는 반드시 기존 /api/parking 데이터에서 조회
     const parkingData =
       await fetchParkingData(
         context.request.url
       );
 
 
-    // 4. 서버 프로그램이 검증된 조건대로 검색/필터/정렬
+    // 5. 프로그램이 해석된 조건대로 검색/필터/정렬
     let result;
 
 
@@ -1041,6 +1361,9 @@ export async function onRequestPost(
       {
         success: true,
 
+        version:
+          APP_VERSION,
+
         message,
 
         interpretation:
@@ -1048,6 +1371,9 @@ export async function onRequestPost(
 
         summary:
           result.summary,
+
+        localRuleUsed,
+        fallbackUsed,
 
         items:
           result.items,
@@ -1064,6 +1390,9 @@ export async function onRequestPost(
     return jsonResponse(
       {
         success: false,
+
+        version:
+          APP_VERSION,
 
         message:
           "AI 주차장 요청 처리 중 오류가 발생했습니다.",
@@ -1106,6 +1435,8 @@ export async function onRequest(
   return jsonResponse(
     {
       success: false,
+      version:
+        APP_VERSION,
       message:
         "POST 요청만 사용할 수 있습니다."
     },
