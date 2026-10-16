@@ -1253,14 +1253,38 @@ async function handleAiRequest() {
     }
 
 
-    renderAiResult(
-      data.summary,
-      data.items
-    );
+    if (
+      data.needClarification
+    ) {
+
+      aiAnswer.hidden =
+        false;
 
 
-    aiStatus.textContent =
-      "AI가 요청을 이해하고 실제 주차장 정보를 조회했습니다.";
+      aiAnswer.textContent =
+        data.summary;
+
+
+      aiResult.innerHTML =
+        "";
+
+
+      aiStatus.textContent =
+        "질문을 조금 더 구체적으로 입력해주세요.";
+
+    }
+    else {
+
+      renderAiResult(
+        data.summary,
+        data.items
+      );
+
+
+      aiStatus.textContent =
+        "AI가 요청을 이해하고 실제 주차장 정보를 조회했습니다.";
+
+    }
 
   }
   catch (error) {

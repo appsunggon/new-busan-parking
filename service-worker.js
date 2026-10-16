@@ -1,4 +1,4 @@
-const CACHE_NAME = "busan-parking-v6-3-2";
+const CACHE_NAME = "busan-parking-v6-4";
 
 const STATIC_FILES = [
   "./",
